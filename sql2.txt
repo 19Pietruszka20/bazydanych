@@ -1,0 +1,133 @@
+--Zestaw 1
+--Zad.1
+--Dla każdego pracownika odpowiedzialnego za jakiś przedmiot podać liczbę przedmiotów
+--z których prowadzi zajęcia (tabela ROZKLADY).
+SELECT p.NAZWISKO, p.NR_PRAC, COUNT(DISTINCT r.NR_PRZEDM)
+FROM rozklady AS r, pracownicy AS p, przedmioty AS prz
+WHERE r.NR_PRAC=p.NR_PRAC AND p.NR_PRAC=prz.NR_ODP_PRAC
+GROUP BY p.NR_PRAC, p.NAZWISKO;
+
+--Zad.2
+--Podać nazwiska i średnią ocen z przedmiotu ALGEBRA tych studentów, którzy z tego
+--przedmiotu mają więcej niż jedną ocenę.
+SELECT s.NR_STUD,s.NAZWISKO, AVG(o.OCENA)
+FROM studenci AS s, oceny AS o, przedmioty AS prz
+WHERE prz.NAZWA_PRZEDM='ALGEBRA' AND prz.NR_PRZEDM=o.NR_PRZEDM
+AND o.NR_STUD=s.NR_STUD
+GROUP BY s.NR_STUD, s.NAZWISKO
+HAVING COUNT(OCENA)>1;
+
+--Zad.3
+--Podać przedmioty realizowane przez największą liczbę pracowników.
+SELECT prz.NAZWA_PRZEDM, prz.NR_PRZEDM
+FROM przedmioty AS prz, rozklady AS r
+WHERE prz.NR_PRZEDM=r.NR_PRZEDM
+GROUP BY prz.NR_PRZEDM, prz.NAZWA_PRZEDM
+HAVING COUNT(DISTINCT r.NR_PRAC)>= 
+ALL(SELECT COUNT(DISTINCT r.NR_PRAC)
+FROM  rozklady r
+GROUP BY r.NR_PRZEDM);
+
+--Zad.4
+--Podać numery i nazwiska pracowników, którzy w temacie DYSK otrzymali wypłatę mniejszą
+--od co najmniej jednej z wypłat pracownika o nazwisku GRZYBEK w dowolnym temacie.
+SELECT DISTINCT p.NR_PRAC, p.NAZWISKO
+FROM pracownicy AS p, tematy AS t, wyplaty AS w
+WHERE t.TEMAT='DYSK' AND p.NR_PRAC=w.NR_PRAC 
+AND w.NR_TEM=t.NR_TEM AND w.KWOTA< 
+(SELECT MAX(w.KWOTA)
+FROM wyplaty AS w, pracownicy AS p
+WHERE p.NR_PRAC=w.NR_PRAC AND p.NAZWISKO='GRZYBEK');
+
+--Zad.5
+--Podać numery, nazwiska i daty urodzenia mężczyzn zatrudnionych w zespole
+--OPROGRAMOWANIE, którzy są młodsi od każdego pracownika zespołu BUDOWA.
+SELECT p.NR_PRAC, p.NAZWISKO, p.DATA_UR
+FROM pracownicy AS p, zespoly AS z
+WHERE z.NR_ZESP=p.NR_ZESP AND z.NAZWA_ZESP='OPROGRAMOWANIE' AND p.PLEC='M' AND p.DATA_UR > 
+ALL(SELECT p.DATA_UR
+FROM pracownicy AS p, zespoly AS z
+WHERE p.NR_ZESP=z.NR_ZESP AND z.NAZWA_ZESP='BUDOWA'
+GROUP BY p.DATA_UR);
+
+--Zad.6
+--Podać nazwiska najstarszych studentów na poszczególnych kierunkach.
+SELECT s.NAZWISKO, s.NR_STUD, k.NAZWA_KIER
+FROM studenci AS s, kierunki AS k
+WHERE k.NR_KIER=s.NR_KIER AND s.DATA_UR=
+(SELECT MIN(s.DATA_UR)
+FROM studenci AS s
+WHERE s.nr_kier=k.nr_kier);
+
+--Zad.7
+--Podać nazwy zespołów, w których nie pracuje żadna kobieta
+SELECT DISTINCT z.NR_ZESP, z.NAZWA_ZESP
+FROM zespoly AS z
+WHERE z.NR_ZESP NOT IN
+(SELECT p.NR_ZESP
+FROM pracownicy AS p
+WHERE p.PLEC='K');
+
+--Zad.8
+--Utworzyć zestawienie zespołów z liczbą pracowników w następującej postaci:
+--Nrz Nazwa_zespołu Liczebność
+--W zestawieniu powinny znaleźć się również zespoły z zerową liczebnością.
+CREATE VIEW wirtualnatabela3(Nrz, Nazwa_zesp, Liczebnosc) AS
+(SELECT z.NR_ZESP, z.NAZWA_ZESP, COUNT(DISTINCT p.NR_PRAC)
+FROM zespoly AS z LEFT OUTER JOIN pracownicy AS p ON z.NR_ZESP=p.NR_ZESP OR z.NR_PRAC_KZ=p.NR_PRAC
+WHERE z.NR_ZESP=p.NR_ZESP OR z.NR_PRAC_KZ=p.NR_PRAC
+GROUP BY z.NR_ZESP, z.NAZWA_ZESP);
+SELECT * FROM wirtualnatabela3
+DROP VIEW wirtualnatabela3;
+
+
+--Zad.9
+--Utworzyć perspektywę zawierającą wyszczególnione poniżej informacje oraz określić, czy
+--można aktualizować dane w tej perspektywie. Jeżeli nie można – podać przyczyny tej sytuacji.
+--Po pomyślnym wykonaniu zadania należy perspektywę usunąć.
+--Perspektywa ma obejmować zestawienie pracowników mających wypłaty w poszczególnych
+--tematach w następującej postaci:
+--Nr_tem Nazwa_tematu Nr_prac Nazwisko
+--Rekordy nie powinny powtarzać się nawet w sytuacji, gdy pracownik uzyskał wielokrotnie
+--dochód w tym samym temacie.
+CREATE VIEW wirtualnatabela(Nr_tem, Nazwa_tematu, Nr_prac, Nazwisko) AS
+(SELECT DISTINCT t.NR_TEM, t.TEMAT, p.NR_PRAC, p.NAZWISKO
+FROM wyplaty AS w, tematy AS t, pracownicy AS p
+WHERE p.NR_PRAC = w.NR_PRAC AND w.NR_TEM = t.NR_TEM);
+SELECT * FROM wirtualnatabela;
+
+
+UPDATE wirtualnatabela
+SET Nr_tem=1
+WHERE NAZWISKO='GRZYBEK';
+INSERT INTO wirtualnatabela(Nr_tem, Nazwa_tematu, Nr_prac, Nazwisko) 
+VALUES (12412,'LEAGUEOFLEGENDS','997','ZawiszaCzarny');
+--nie da się updatować i insertować
+--The target table of the UPDATE is not updatable
+--MySQL ma specjalną ochronę przed zmianą widoku, która nie zawiera klucza
+--Jeśli dodamy klucz podstawowy to powinno zadziałać
+
+DROP VIEW wirtualnatabela;
+
+--Zad.10
+--Zrealizować zestawienie średnich, minimalnych i maksymalnych zarobków pracowników
+--w poszczególnych zespołach.
+--Uwaga!
+--Zestawienie zrealizować w dwóch krokach:
+-- w pierwszym utworzyć perspektywę (widok) o postaci:
+--Nrz Nazwa_zesp Nr_prac Nazwisko Suma_zarobków_prac
+--uwzględnić również fakt, że pracownik mógł nie dostać żadnej wypłaty,
+-- utworzoną perspektywę wykorzystać w zadaniu.
+CREATE VIEW wirtualnatabela2(Nrz, Nazwa_zesp, Nr_prac, Nazwisko, Suma_zarobkow_prac) AS
+(SELECT z.NR_ZESP, z.NAZWA_ZESP, p.NR_PRAC, p.NAZWISKO, SUM(w.KWOTA)
+FROM zespoly AS z,  pracownicy AS p LEFT OUTER JOIN wyplaty AS w ON p.NR_PRAC = w.NR_PRAC
+WHERE z.NR_ZESP = p.NR_ZESP 
+GROUP BY z.NR_ZESP, z.NAZWA_ZESP, p.NR_PRAC, p.NAZWISKO)
+SELECT * FROM wirtualnatabela2
+
+
+SELECT Nrz, Nazwa_zesp, AVG(Suma_zarobkow_prac) AS 'srednia', MIN(Suma_zarobkow_prac) AS 'min', MAX(Suma_zarobkow_prac) AS 'max'
+FROM wirtualnatabela2
+GROUP BY Nrz, Nazwa_zesp
+
+DROP VIEW wirtualnatabela2;
