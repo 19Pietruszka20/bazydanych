@@ -1,0 +1,353 @@
+--Zad.3.1
+--Utworzyć nowe tabele zesp1 oraz prac1 tak, aby spełnione były następujące warunki:
+-- Tabela zesp1 powinna posiadać następujące kolumny (typy danych można znaleźć np. na stronie:
+--https://pomoc.home.pl/bazawiedzy/kursy/795):
+--numer zespołu (nr_zesp): 2-bajtowa wartość całkowita
+--nazwa zespołu (nazwa_zesp): pole znakowe o długości 30 znaków
+--numer instytutu (nr_inst): 2-bajtowa wartość całkowita
+--Kluczem głównym tabeli zesp1 jest numer zespołu.
+-- Tabela prac1 powinna posiadać następujące kolumny:
+--numer pracownika (nr_prac): int(11)
+--plec: pole znakowe o długości 1 znaku
+--data urodzenia (data_ur): pole daty z czasem dnia
+--nazwisko pole znakowe o długości 15 znaków
+--numer zespołu (nr_zesp): 2-bajtowa wartość całkowita
+--Kluczem głównym tabeli prac1 jest numer pracownika.
+--Dodatkowo kolumna plec nie może posiadać wartości pustych.
+--Na kolumnie numer zespołu powinien zostać utworzony indeks. 
+CREATE TABLE zesp1(NR_ZESP SMALLINT primary key, NAZWA_ZESP varchar(30),NR_INST SMALLINT);
+SELECT * FROM zesp1;
+CREATE TABLE prac1(NR_PRAC INT primary key check(NR_PRAC=11), plec varchar(1) NOT NULL,DATA_UR datetime,NAZWISKO varchar(15), NR_ZESP SMALLINT,CONSTRAINT data_mniejsza CHECK (DATA_UR<getdate()));
+CREATE INDEX i_nr_zesp on prac1(NR_ZESP);
+SELECT * FROM prac1;
+DROP TABLE zesp1;
+DROP TABLE prac1;
+DROP TABLE prac;
+DROP TABLE zesp;
+
+SET FOREIGN_KEY_CHECKS=0;
+SET FOREIGN_KEY_CHECKS=1;
+
+--Zad.3.2
+--Wykorzystując utworzone już wcześniej w systemie tabele, wprowadzić do tabeli zesp1 wszystkie wiersze z
+--tabeli ZESPOLY (polecenie 1.8). Zwrócić uwagę na to, że tabele mają różne liczby kolumn. 
+INSERT INTO zesp1(NR_ZESP, NAZWA_ZESP,NR_INST) 
+SELECT NR_ZESP, NAZWA_ZESP, NR_INST
+FROM zespoly;
+
+--Zad.3.3
+--Wykonać zapytanie zwracające informację o danych znajdujących się we wszystkich wierszach tabeli zesp1:
+--SELECT * FROM zesp1;
+SELECT * 
+FROM zesp1;
+
+--Zad.3.4
+--Zmodyfikować definicję tabeli zesp1 (polecenie 1.7), dodając kolumnę:
+--numer pracowniczy kierownika zespołu (nr_prac_kz): 4-bajtowa wartość całkowita
+ALTER TABLE zesp1
+ADD NR_PRAC_KZ INT;
+
+SELECT * 
+FROM zesp1;
+
+--Zad.3.5
+--Zaktualizować dane tabeli zesp1, wpisując w komórkach nowododanej kolumny odpowiadające im wartości 
+--z kolumny NR_PRAC_KZ tabeli ZESPOLY (polecenie 1.15). We frazie WHERE użyć warunku dla kolumny
+--NR_ZESP
+UPDATE zesp1 z1, zespoly z
+SET z1.NR_PRAC_KZ=z.NR_PRAC_KZ
+WHERE z1.NR_ZESP=z.NR_ZESP;
+
+SELECT * 
+FROM zesp1;
+
+--Zad.3.6
+--Dla tabeli prac1 zmienić nazwę kolumny, w której pamiętane są nazwiska pracowników. Nowa nazwa
+--kolumny powinna brzmieć: LastName (polecenie 1.9).
+ALTER TABLE prac1
+CHANGE NAZWISKO LastName varchar(15);
+
+--Zad.3.7
+--Zmienić nazwy utworzonych tabel. Nowe nazwy to, odpowiednio, prac i zesp (polecenie 1.13).
+--Wykorzystując utworzone już wcześniej w systemie tabele wprowadzić do tabeli prac wszystkie wiersze z
+--tabeli PRACOWNICY (polecenie 1.8). W tym celu, wykorzystując polecenie 1.8, należy wprowadzić do
+--tabeli prac wszystkie wiersze z tabeli PRACOWNICY.
+RENAME TABLE zesp1 TO zesp;
+RENAME TABLE prac1 TO prac;
+INSERT INTO prac(NR_PRAC,PLEC,DATA_UR,LastName,NR_ZESP)
+SELECT *
+FROM PRACOWNICY;
+
+SELECT * 
+FROM zesp;
+
+SELECT * 
+FROM prac;
+
+--Zad.3.8
+--Zmienić silnik bazy MySQL dla utworzonych tabel:
+--ALTER TABLE prac ENGINE=InnoDB;
+--ALTER TABLE zesp ENGINE=InnoDB;
+ALTER TABLE prac ENGINE=InnoDB;
+ALTER TABLE zesp ENGINE=InnoDB;
+
+--Zad.3.9
+--Dla tabeli zesp zdefiniować więzy integralności (polecenie 1.11). W tabeli zesp utworzyć klucz obcy na
+--kolumnie pamiętającej numer pracowniczy kierownika zespołu (nr_prac_kz). Kluczem głównym ma być dla
+--tej kolumny kolumna numer pracowniczy (nr_prac) z tabeli prac.
+--Należy zapewnić, by w przypadku próby usunięcia pracownika z tabeli prac, próba ta nie powiodła się, gdy
+--istnieje wiersz o tej samej wartości klucza obcego w tabeli podrzędnej zesp.
+ALTER TABLE zesp 
+ADD FOREIGN KEY (NR_PRAC_KZ) REFERENCES prac(NR_PRAC) 
+ON DELETE RESTRICT;
+
+--Zad.3.10
+--Dla tabeli prac zdefiniować więzy integralności (proszę nie nadawać nazwy więzom – czyli nie używać
+--klauzuli CONSTRAINT). W tabeli prac utworzyć klucz obcy na kolumnie numer zespołu (nr_zesp). Należy
+--zapewnić, by przy kasowaniu wierszy w nadrzędnej tabeli zesp w miejsce wartości kluczy obcych
+--odpowiadających wartości kasowanego klucza głównego wpisywane były wartości NULL, a wiersze te nie
+--były usuwane z tabeli.
+
+ALTER TABLE prac
+ADD FOREIGN KEY (NR_ZESP) REFERENCES zesp(NR_ZESP) 
+ON DELETE SET NULL;
+
+--Zad.3.11
+--Dla każdego z utworzonych więzów referencyjnych należy sprawdzić ich działanie dla operacji usuwania,
+--modyfikacji i dodawania wierszy, które mogą naruszyć utworzone więzy. Sumarycznie tu powinno się znaleźć
+--co najmniej 10 poleceń INSERT, UPDATE, DELETE. Przykładowo można użyć następujących poleceń:
+--SELECT * FROM prac WHERE nr_zesp=1;
+--DELETE FROM zesp WHERE nr_zesp=1;
+--SELECT * FROM prac WHERE nr_prac=8 OR nr_prac=13;
+--DELETE FROM prac WHERE nr_prac=2;
+--SELECT * FROM zesp;
+
+SELECT * 
+FROM prac 
+WHERE NR_ZESP=1;
+
+--usuwa dane z tabeli zesp o numerze zespolu 1
+DELETE FROM zesp 
+WHERE NR_ZESP=1;--git
+
+SELECT * 
+FROM prac 
+WHERE NR_ZESP=2;
+
+--usuwa dane z tabeli zesp o numerze zespolu 2
+DELETE FROM zesp 
+WHERE NR_ZESP=2;--git
+
+--wybiera dane z tabeli prac dla zespolu o numerze 8 i nr pracownika 13
+SELECT * 
+FROM prac 
+WHERE NR_ZESP=8 OR NR_PRAC=13;
+
+--próba usunięcia pracownika z tabeli prac o nr pracownika 4(primary key)
+DELETE FROM prac 
+WHERE NR_PRAC=4;        --nie da się
+--cannot delete or update a parent row:
+-- a foreign key constraint fails("uczelnia", "zesp", CONSTRAINT "zesp_ibfk_1" FOREIGN KEY (NR_PRAC_KZ) REFERENCES "prac"("NR_PRAC"))
+
+
+
+
+SELECT * 
+FROM prac 
+WHERE NR_ZESP=4;
+         
+--usuwa dane z tabeli prac gdzie nazwisko jest Grzybek         
+DELETE FROM prac 
+WHERE LastName='GRZYBEK';
+
+SELECT * 
+FROM prac 
+WHERE NR_ZESP=2;
+
+--usuwa dane z tabeli prac gdzie nazwisko jest GRZYBIARZ            
+DELETE FROM prac 
+WHERE LastName='GRZYBIARZ';
+
+SELECT * 
+FROM prac 
+WHERE NR_ZESP=5;
+          
+DELETE FROM prac 
+WHERE LastName='GRZYBIARZ';
+
+--usuwa dane z tabeli prac gdzie nazwa zespolu to AUTOMATY
+DELETE FROM zesp 
+WHERE NAZWA_ZESP='AUTOMATY';
+
+--próba zaktualizowania z tabeli prac nr pracownika(primary key)
+UPDATE prac 
+SET NR_PRAC=1; --nie da się
+--cannot delete or update a parent row:
+-- a foreign key constraint fails("uczelnia", "zesp", CONSTRAINT "zesp_ibfk_1" FOREIGN KEY (NR_PRAC_KZ) REFERENCES "prac"("NR_PRAC"))
+-- nie pozwala nam zmieniać każdego rekordu w bazie
+
+SELECT * 
+FROM prac
+
+--próba zaktualizowania z tabeli prac nr pracownika o numerze 2 i zamiana go na numer 1(primary key)
+UPDATE prac 
+SET NR_PRAC=1
+WHERE NR_PRAC=2;
+
+ --próba zaktualizowania z tabeli zesp nr zesplow(primary key)               
+UPDATE zesp 
+SET NR_ZESP=1;
+--cannot delete or update a parent row:
+-- a foreign key constraint fails("uczelnia", "prac", CONSTRAINT "prac_ibfk_1" FOREIGN KEY (NR_ZESP) REFERENCES "zesp"("NR_ZESP") ON DELETE SET NULL)
+-- nie pozwala nam zmieniać każdego rekordu w bazie
+
+
+--próba wstawienia w tabeli prac w nr pracowników nr instytutów z tabeli zesp
+INSERT INTO prac (NR_PRAC) 
+SELECT NR_INST 
+FROM zesp;
+--Duplicate entry '1' for key 'PRIMARY'
+
+--próba wstawienia w tabeli zesp w nr zespołów nr pracowników z tabeli prac
+INSERT INTO zesp (NR_ZESP)
+SELECT NR_PRAC 
+FROM PRAC;
+--Duplicate entry '4' for key 'PRIMARY'
+
+--Sprawdzenie czy można zmienić klucz obcy w tabeli prac
+UPDATE prac 
+SET NR_ZESP=4 
+WHERE NR_PRAC=4;--wykonuje się
+
+--Sprawdzenie czy można zmienić klucz obcy w tabeli zesp
+UPDATE zesp 
+SET NR_PRAC_KZ=4 
+WHERE NR_ZESP=3;--wykonuje się
+
+ALTER TABLE prac MODIFY COLUMN NR_PRAC INT auto_increment;
+--ALTER TABLE prac MODIFY COLUMN NR_PRAC INT;
+--próba wstawienia wiersza do tabeli prac
+INSERT INTO prac (NR_PRAC,PLEC, DATA_UR,LastName, NR_ZESP) 
+VALUES (NULL,'M','1350-10-10','ZawiszaCzarny',10);--wykonuje się
+
+
+--Zad.3.12
+--Sprawdzić czy działają ograniczenia zawiązane z opcjami NOT NULL dla kolumny plec i ograniczenia
+--związane z kluczami głównymi. W tym celu należy wykonać następujące 2 polecenia:
+--INSERT INTO prac VALUES (100, NULL, 'White', '1991-10-10', 2);
+--INSERT INTO prac (nr_prac, lastname, data_ur, nr_zesp) VALUES (101,
+--'Smith', '1994-12-01', 2);
+--a następnie sprawdź jak zostały zapisane wprowadzone wiersze wykonując selekcję na tabeli PRAC.
+--Proszę przeanalizować jak wygląda wartość w kolumnie plec dla wprowadzonych danych i skomentować
+--zwrócone wyniki. Pomocne może być m.in. wykonanie następującego zapytania:
+--SELECT * FROM prac WHERE plec IS NULL;
+
+ALTER TABLE prac 
+MODIFY COLUMN NR_PRAC INT;
+INSERT INTO prac 
+VALUES (100, NULL, '1991-10-10', 'White', 1);
+--Column plec cannot be null
+-- Próba wstawienia wartośc gdzie występuje NULL zwraca błąd 1048 
+INSERT INTO prac (NR_PRAC, LastName, DATA_UR, NR_ZESP)
+VALUES (101, 'Smith', '1994-12-01', 1);
+
+SELECT * 
+FROM prac 
+WHERE plec IS NULL;										
+									
+-- Ograniczenie działa poprawnie
+
+--Zad.3.13
+--Odczytać ze słownika bazy informację na temat domyślnej nazwy więzów integralności założonych na tabeli
+--prac:
+--SELECT constraint_name
+--FROM information_schema.REFERENTIAL_CONSTRAINTS
+--WHERE constraint_schema = 'uczelnia' AND table_name = 'prac';
+
+SELECT constraint_name
+FROM information_schema.REFERENTIAL_CONSTRAINTS
+WHERE constraint_schema = 'uczelnia' AND table_name = 'prac';
+
+--Zad.3.14
+--Usunąć więzy integralności tabeli prac (polecenie 1.7 z frazą DROP FOREIGN KEY).
+ALTER TABLE prac
+DROP FOREIGN KEY prac_ibfk_1;	
+
+--Zad.3.15
+--Odczytać ze słownika bazy, które kolumny tabeli zesp mają zdefiniowane więzy integralności:
+--SELECT *
+--Laboratorium DDL (MySQL) Zadania do wykonania -6-
+--FROM information_schema.KEY_COLUMN_USAGE
+--WHERE constraint_schema = 'uczelnia' AND table_name = 'zesp' AND
+--referenced_table_name IS NOT NULL;
+
+SELECT *
+FROM information_schema.KEY_COLUMN_USAGE
+WHERE constraint_schema = 'uczelnia' AND table_name = 'zesp' AND
+referenced_table_name IS NOT NULL;
+
+--Zad.3.16
+--Zdefiniować perspektywę pokazującą zawartość kolumn NR_STUD i NAZWISKO tabeli STUDENCI
+--(polecenie 1.16).
+CREATE VIEW wirtualnatabela16(NR_STUD,NAZWISKO) AS
+(SELECT NR_STUD, NAZWISKO
+FROM studenci);
+
+SELECT*FROM wirtualnatabela16;
+
+--Zad.3.17
+--Wykonać zapytanie, operujące na utworzonej perspektywie, pokazujące dane studentów, których numery są
+--mniejsze niż 10.
+SELECT * 
+FROM wirtualnatabela16
+WHERE NR_STUD<10;
+
+--Zad.3.18
+--Za pośrednictwem utworzonej perspektywy (UPDATE nazwa_perspektywy SET …) zmienić nazwisko
+--studenta o numerze 1 na MARECKI.
+UPDATE wirtualnatabela16 
+SET NAZWISKO='MARECKI' 
+WHERE NR_STUD=1;
+
+SELECT * FROM wirtualnatabela16;
+
+--Zad.3.19
+--Wykonać zapytanie sprawdzające czy zmiana została faktycznie odnotowana w tabeli studenci:
+--SELECT * FROM studenci WHERE nr_stud=1;
+
+SELECT * 
+FROM studenci 
+WHERE nr_stud=1;
+
+--Zad.3.20
+--Zdefiniować perspektywę pokazującą dla danego studenta (kolumny: nr_stud i nazwisko tabeli studenci) oceny
+--(kolumna ocena tabeli oceny), które uzyskali w poszczególnych przedmiotach (kolumna nazwa_przedm tabeli
+--przedmioty). Nadać kolumnom widoku (perspektywy) nazwy inne niż w tabelach bazowych (np. zamiast
+--nr_stud – id_studenta). Potrzebne łączenie tabel wykonać we frazie WHERE
+
+CREATE VIEW wirtualnatabela20(id_studenta, name, jaknajlepszeoceny, przedmiot) AS
+( SELECT s.NR_STUD, s.NAZWISKO, o.OCENA, p.NAZWA_PRZEDM
+FROM studenci AS s, oceny AS o, przedmioty AS p
+WHERE s.NR_STUD=o.NR_STUD and o.NR_PRZEDM=p.NR_PRZEDM);
+--Zad.3.21
+--Wykonać zapytanie, operujące na utworzonej perspektywie, pokazujące dane wszystkich studentów.
+SELECT*FROM wirtualnatabela20;
+DROP VIEW wirtualnatabela20;
+
+--Zad.3.22 i Zad.3.23
+--Za pośrednictwem utworzonej perspektywy (UPDATE nazwa_perspektywy SET …) zmienić ocenę
+--studenta o numerze 2 w przedmiocie BAZY DANYCH na 5.
+
+--Sprawdzić efekt wprowadzonych zmian, wykonując selekcję na tabeli oceny.
+
+UPDATE wirtualnatabela20 
+SET jaknajlepszeoceny=5 
+WHERE id_studenta=2 AND przedmiot='BAZY DANYCH';
+SELECT*FROM wirtualnatabela20 WHERE id_studenta=2 AND przedmiot='BAZY DANYCH';
+
+
+Select *
+FROM prac;
+
+Select *
+FROM zesp;
