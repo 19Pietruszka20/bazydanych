@@ -1,0 +1,82 @@
+-- A
+--Zad.2                                
+SELECT p.nazwisko
+FROM pracownicy AS p
+WHERE p.nazwisko LIKE 'K%';
+
+--Zad.3
+SELECT t.temat
+FROM tematy AS t, pracownicy AS p
+WHERE p.nazwisko='MISIURA' AND t.NR_PRAC_KT=p.NR_PRAC;
+
+--Zad.6
+SELECT p.nazwisko
+FROM pracownicy AS p, tematy AS t, przydzialy AS pr
+WHERE p.NR_PRAC=pr.NR_PRAC AND p.PLEC='M'
+AND t.NR_TEM=pr.NR_TEM AND (t.temat='DYSK' OR t.temat='GUPTA')
+GROUP BY p.nazwisko
+ORDER BY p.nazwisko DESC;
+
+--Zad.8
+SELECT t.temat AS 'podrz', tt.temat
+FROM tematy AS t LEFT OUTER JOIN tematy AS tt on t.NR_TEM_NADRZ=tt.NR_TEM;
+
+--Zad.9
+SELECT COUNT(NR_TEM)
+FROM pracownicy AS p, przydzialy AS pr
+WHERE p.NR_PRAC=pr.NR_PRAC AND nazwisko='MISIURA';
+
+--Zad.12
+SELECT w.NR_TEM, SUM(KWOTA), COUNT(w.NR_TEM)
+FROM wyplaty AS w, tematy AS t
+WHERE w.NR_TEM=t.NR_TEM
+GROUP BY w.NR_TEM;
+
+--Zad.14
+SELECT MIN(p.DATA_UR), pr.KOD_FUNKCJI
+FROM pracownicy AS p, przydzialy AS pr, funkcje AS f
+WHERE p.NR_PRAC=pr.NR_PRAC AND pr.KOD_FUNKCJI=f.KOD_FUNKCJI
+GROUP BY pr.KOD_FUNKCJI;
+
+--Zad.16
+SELECT t.temat
+FROM tematy AS t, wyplaty AS w
+WHERE t.NR_TEM=w.NR_TEM
+GROUP BY t.temat, w.NR_TEM
+HAVING SUM(w.KWOTA)<400;
+
+-- Zad.17
+SELECT p.nazwisko
+FROM pracownicy AS p, przydzialy AS pr
+WHERE p.NR_PRAC=pr.NR_PRAC
+GROUP BY p.nazwisko, p.NR_PRAC
+HAVING COUNT(DISTINCT pr.NR_TEM)>5;
+
+--Zad.18
+SELECT t.temat
+FROM tematy AS t
+WHERE t.DATA_ROZP<
+(SELECT t.DATA_ROZP
+FROM tematy AS t
+WHERE t.temat='DYSK');
+
+--Zad.19
+SELECT p.nazwisko
+FROM pracownicy AS p, wyplaty AS w
+WHERE w.NR_PRAC=p.NR_PRAC 
+GROUP BY p.nazwisko, p.NR_PRAC
+HAVING SUM(w.KWOTA)> 
+(SELECT SUM(w.KWOTA)
+FROM wyplaty AS w, pracownicy AS p
+WHERE p.nazwisko='MISIURA' AND w.NR_PRAC=p.NR_PRAC
+);  
+
+--Zad.20
+SELECT t.temat, t.NR_TEM
+FROM tematy AS t, przydzialy AS pr,pracownicy AS p
+WHERE p.NR_PRAC=pr.NR_PRAC AND t.NR_TEM=pr.NR_TEM
+GROUP BY t.NR_TEM, t.temat
+HAVING COUNT(DISTINCT pr.NR_PRAC)>
+(SELECT COUNT(DISTINCT pr.NR_PRAC)
+FROM przydzialy AS pr, tematy AS t
+WHERE t.temat='DYSK' AND t.NR_TEM=pr.NR_TEM);
